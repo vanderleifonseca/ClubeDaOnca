@@ -59,6 +59,8 @@
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
 	<key>NSCameraUsageDescription</key>
-	<string>A câmera é usada no modo portaria para ler o QR Code da carteirinha.</string>
+	<string>A câmera é usada para ler o QR Code da carteirinha na portaria e para fotografar ocorrências.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>A galeria é usada para anexar fotos às ocorrências enviadas à administração.</string>
 </dict>
 </plist>

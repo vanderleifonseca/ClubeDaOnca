@@ -102,6 +102,13 @@ public static class MauiProgram
         builder.Services.AddTransient<AvisosPage>();
         builder.Services.AddTransient<ComunicadosViewModel>();
         builder.Services.AddTransient<ComunicadosPage>();
+        builder.Services.AddSingleton<RegistroOcorrencia>();
+        builder.Services.AddTransient<NovaOcorrenciaViewModel>();
+        builder.Services.AddTransient<NovaOcorrenciaPopup>();
+        builder.Services.AddTransient<OcorrenciasViewModel>();
+        builder.Services.AddTransient<OcorrenciasPage>();
+        builder.Services.AddTransient<OcorrenciaViewModel>();
+        builder.Services.AddTransient<OcorrenciaPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

@@ -36,6 +36,8 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("evento-detalhe", typeof(EventoDetalhePage));
         Routing.RegisterRoute("avisos", typeof(AvisosPage));
         Routing.RegisterRoute("comunicados", typeof(ComunicadosPage));
+        Routing.RegisterRoute("ocorrencias", typeof(OcorrenciasPage));
+        Routing.RegisterRoute("ocorrencia", typeof(OcorrenciaPage));
     }
 
     /// <summary>Rota inicial depois do login: troca de senha provisória ou abas principais.</summary>

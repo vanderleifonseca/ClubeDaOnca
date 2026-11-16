@@ -5,6 +5,7 @@ using ClubeDaOnca.Contracts.Comunicacao;
 using ClubeDaOnca.Contracts.Contratos;
 using ClubeDaOnca.Contracts.Eventos;
 using ClubeDaOnca.Contracts.Financeiro;
+using ClubeDaOnca.Contracts.Ocorrencias;
 using ClubeDaOnca.Contracts.Reservas;
 using ClubeDaOnca.Contracts.Socios;
 using Refit;
@@ -184,6 +185,40 @@ public interface IClubeApi
 
     [Get("/eventos/{id}/post/imagem")]
     Task<HttpResponseMessage> ImagemPostEventoAsync(Guid id, CancellationToken ct = default);
+
+    // Ocorrências
+    [Multipart]
+    [Post("/ocorrencias")]
+    Task<OcorrenciaCriadaResponse> RegistrarOcorrenciaAsync([AliasAs("titulo")] string titulo, [AliasAs("categoria")] string categoria,
+        [AliasAs("local")] string local, [AliasAs("descricao")] string descricao, [AliasAs("fotos")] IEnumerable<ByteArrayPart> fotos,
+        CancellationToken ct = default);
+
+    [Get("/ocorrencias/minhas")]
+    Task<List<OcorrenciaResumoDto>> MinhasOcorrenciasAsync(CancellationToken ct = default);
+
+    [Get("/ocorrencias")]
+    Task<List<OcorrenciaResumoDto>> OcorrenciasAsync(string? status = null, bool? paraMim = null, CancellationToken ct = default);
+
+    [Get("/ocorrencias/resumo")]
+    Task<ResumoOcorrenciasDto> ResumoOcorrenciasAsync(CancellationToken ct = default);
+
+    [Get("/ocorrencias/responsaveis")]
+    Task<List<ResponsavelDto>> ResponsaveisOcorrenciaAsync(CancellationToken ct = default);
+
+    [Get("/ocorrencias/{id}")]
+    Task<OcorrenciaDto> OcorrenciaAsync(Guid id, CancellationToken ct = default);
+
+    [Get("/ocorrencias/{id}/fotos/{fotoId}")]
+    Task<HttpResponseMessage> FotoOcorrenciaAsync(Guid id, Guid fotoId, CancellationToken ct = default);
+
+    [Post("/ocorrencias/{id}/encaminhar")]
+    Task<OcorrenciaDto> EncaminharOcorrenciaAsync(Guid id, [Body] EncaminharOcorrenciaRequest request, CancellationToken ct = default);
+
+    [Post("/ocorrencias/{id}/status")]
+    Task<OcorrenciaDto> AlterarStatusOcorrenciaAsync(Guid id, [Body] AlterarStatusOcorrenciaRequest request, CancellationToken ct = default);
+
+    [Post("/ocorrencias/{id}/comentarios")]
+    Task<OcorrenciaDto> ComentarOcorrenciaAsync(Guid id, [Body] ComentarioOcorrenciaRequest request, CancellationToken ct = default);
 
     // Carteirinha
     [Get("/carteirinha")]

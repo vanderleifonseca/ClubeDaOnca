@@ -6,6 +6,7 @@ using ClubeDaOnca.Domain.Eventos;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ClubeDaOnca.Domain.Financeiro;
+using ClubeDaOnca.Domain.Ocorrencias;
 using ClubeDaOnca.Domain.Reservas;
 using ClubeDaOnca.Domain.Socios;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
@@ -39,6 +40,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TenantA
     public DbSet<Aviso> Avisos => Set<Aviso>();
     public DbSet<Divulgacao> Divulgacoes => Set<Divulgacao>();
     public DbSet<EnvioDivulgacao> EnviosDivulgacao => Set<EnvioDivulgacao>();
+    public DbSet<Ocorrencia> Ocorrencias => Set<Ocorrencia>();
+    public DbSet<FotoOcorrencia> FotosOcorrencia => Set<FotoOcorrencia>();
+    public DbSet<MovimentoOcorrencia> MovimentosOcorrencia => Set<MovimentoOcorrencia>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Socio> Socios => Set<Socio>();
     public DbSet<Dependente> Dependentes => Set<Dependente>();
@@ -284,6 +288,53 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TenantA
             e.HasIndex(x => new { x.DivulgacaoId, x.Status });
         });
 
+        // Número da ocorrência: sequencial gerado pelo banco.
+        builder.HasSequence<int>("numero_ocorrencia").StartsAt(1);
+
+        builder.Entity<Ocorrencia>(o =>
+        {
+            o.ToTable("Ocorrencias");
+            o.HasKey(x => x.Id);
+            o.Property(x => x.Numero).HasDefaultValueSql("nextval('numero_ocorrencia')");
+            o.Property(x => x.Titulo).HasMaxLength(150).IsRequired();
+            o.Property(x => x.Categoria).HasConversion<string>().HasMaxLength(20);
+            o.Property(x => x.Local).HasMaxLength(100);
+            o.Property(x => x.Descricao).HasMaxLength(2000).IsRequired();
+            o.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            o.Property(x => x.RegistradaPorId).HasMaxLength(450).IsRequired();
+            o.Property(x => x.RegistradaPorNome).HasMaxLength(150).IsRequired();
+            o.Property(x => x.ResponsavelId).HasMaxLength(450);
+            o.Property(x => x.ResponsavelNome).HasMaxLength(150);
+            o.HasIndex(x => new { x.AssociacaoId, x.Status });
+            o.HasIndex(x => new { x.ResponsavelId, x.Status });
+            o.HasIndex(x => x.RegistradaPorId);
+            o.HasMany(x => x.Fotos).WithOne().HasForeignKey(f => f.OcorrenciaId).OnDelete(DeleteBehavior.Cascade);
+            o.HasMany(x => x.Movimentos).WithOne().HasForeignKey(m => m.OcorrenciaId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<FotoOcorrencia>(f =>
+        {
+            f.ToTable("FotosOcorrencia");
+            f.HasKey(x => x.Id);
+            f.Property(x => x.TipoConteudo).HasMaxLength(30).IsRequired();
+            f.Property(x => x.Conteudo).IsRequired();
+        });
+
+        builder.Entity<MovimentoOcorrencia>(m =>
+        {
+            m.ToTable("MovimentosOcorrencia");
+            m.HasKey(x => x.Id);
+            m.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20);
+            m.Property(x => x.AutorId).HasMaxLength(450);
+            m.Property(x => x.AutorNome).HasMaxLength(150).IsRequired();
+            m.Property(x => x.Texto).HasMaxLength(2000);
+            m.Property(x => x.StatusAnterior).HasConversion<string>().HasMaxLength(20);
+            m.Property(x => x.StatusNovo).HasConversion<string>().HasMaxLength(20);
+            m.Property(x => x.ParaId).HasMaxLength(450);
+            m.Property(x => x.ParaNome).HasMaxLength(150);
+            m.HasIndex(x => new { x.OcorrenciaId, x.Em });
+        });
+
         builder.Entity<EventoLocal>(l =>
         {
             l.ToTable("EventoLocais");
@@ -397,6 +448,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TenantA
         ConfigurarTenant<ReservaEvento>(builder);
         ConfigurarTenant<Aviso>(builder);
         ConfigurarTenant<Divulgacao>(builder);
+        ConfigurarTenant<Ocorrencia>(builder);
     }
 
     private void ConfigurarTenant<T>(ModelBuilder builder) where T : class, IPertenceAssociacao

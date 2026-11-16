@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClubeDaOnca.App.ViewModels"
+             x:Class="ClubeDaOnca.App.Views.OcorrenciasPage"
+             x:DataType="vm:OcorrenciasViewModel"
+             Title="{Binding Titulo}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Nova" Command="{Binding NovaCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <RefreshView Command="{Binding CarregarCommand}" IsRefreshing="{Binding Carregando}">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="10" MaximumWidthRequest="760">
+                <Picker Title="Mostrar" ItemsSource="{Binding OpcoesFiltro}" SelectedItem="{Binding Filtro}" IsVisible="{Binding Gestao}" />
+
+                <Label Text="{Binding Erro}" TextColor="{StaticResource Erro}"
+                       IsVisible="{Binding Erro, Converter={StaticResource IsStringNotNullOrEmptyConverter}}" />
+                <Label Text="Nenhuma ocorrência por aqui." IsVisible="{Binding Vazia}"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Itens}" Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:OcorrenciaLinha">
+                            <Border Style="{StaticResource Cartao}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:OcorrenciasViewModel}}, Path=AbrirCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding Titulo}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Status}" FontSize="13" />
+                                    <Label Text="{Binding Detalhe}" FontSize="13" />
+                                    <Label Text="{Binding Registro}" FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                    <Label Text="{Binding Responsavel}" FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

@@ -4,8 +4,14 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace ClubeDaOnca.App.ViewModels;
 
-public partial class InicioViewModel(SessaoService sessao, IClubeApi api) : ObservableObject
+public partial class InicioViewModel(SessaoService sessao, IClubeApi api, RegistroOcorrencia registroOcorrencia) : ObservableObject
 {
+    [RelayCommand]
+    private Task RegistrarOcorrenciaAsync() => registroOcorrencia.AbrirAsync();
+
+    [RelayCommand]
+    private Task AbrirMinhasOcorrenciasAsync() => Shell.Current.GoToAsync("ocorrencias");
+
     [ObservableProperty]
     public partial string Saudacao { get; set; } = string.Empty;
 

@@ -210,6 +210,7 @@ app.MapFinanceiro();
 app.MapContratos();
 app.MapEventos();
 app.MapComunicacao();
+app.MapOcorrencias();
 
 // Aplica migrations, cria perfis e o admin inicial (se configurado).
 await Seed.ExecutarAsync(app.Services, app.Configuration);

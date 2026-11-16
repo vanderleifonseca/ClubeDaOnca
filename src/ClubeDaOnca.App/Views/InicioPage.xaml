@@ -27,6 +27,22 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Style="{StaticResource Cartao}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding RegistrarOcorrenciaCommand}" />
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="⚠️  Registrar ocorrência" FontAttributes="Bold" FontSize="17" />
+                    <Label Text="Algo errado no clube? Avise a administração, com fotos se quiser." FontSize="13" />
+                    <Label Text="Ver minhas ocorrências ›" FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding AbrirMinhasOcorrenciasCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </VerticalStackLayout>
+            </Border>
+
             <Border Style="{StaticResource Cartao}" IsVisible="{Binding EhPresidente}">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding AbrirFichasCommand}" />

@@ -5,14 +5,16 @@ namespace ClubeDaOnca.App.Views;
 public partial class GestaoPage : ContentPage
 {
     private readonly SessaoService _sessao;
+    private readonly IClubeApi _api;
 
-    public GestaoPage(SessaoService sessao)
+    public GestaoPage(SessaoService sessao, IClubeApi api)
     {
         InitializeComponent();
         _sessao = sessao;
+        _api = api;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
         // Portaria só lê carteirinhas; o cadastro é da secretaria e do admin.
@@ -25,7 +27,30 @@ public partial class GestaoPage : ContentPage
         CartaoComunicados.IsVisible = _sessao.EhSecretaria;
         CartaoAssociacao.IsVisible = _sessao.EhAdmin;
         CartaoAssociacoes.IsVisible = _sessao.EhSuperAdmin;
+        CartaoOcorrencias.IsVisible = _sessao.EhAdmin; // ocorrências vão para o Admin, não para a secretaria
+        if (_sessao.EhAdmin) await AtualizarResumoOcorrenciasAsync();
     }
+
+    private async Task AtualizarResumoOcorrenciasAsync()
+    {
+        try
+        {
+            var r = await _api.ResumoOcorrenciasAsync();
+            var partes = new List<string>();
+            if (r.Abertas > 0) partes.Add(r.Abertas == 1 ? "1 aberta" : $"{r.Abertas} abertas");
+            if (r.EmAndamento > 0) partes.Add($"{r.EmAndamento} em andamento");
+            if (r.ParaMim > 0) partes.Add(r.ParaMim == 1 ? "1 com você" : $"{r.ParaMim} com você");
+            ResumoOcorrencias.Text = string.Join(" · ", partes);
+            ResumoOcorrencias.IsVisible = partes.Count > 0;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or Refit.ApiException)
+        {
+            ResumoOcorrencias.IsVisible = false; // offline: o cartão continua abrindo a lista
+        }
+    }
+
+    private async void AbrirOcorrencias(object? sender, TappedEventArgs e) =>
+        await Shell.Current.GoToAsync("ocorrencias", new ShellNavigationQueryParameters { ["gestao"] = true });
 
     private async void AbrirAssociacao(object? sender, TappedEventArgs e) =>
         await Shell.Current.GoToAsync("associacao", new ShellNavigationQueryParameters { ["atual"] = true });

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClubeDaOnca.App.ViewModels"
+             x:Class="ClubeDaOnca.App.Views.OcorrenciaPage"
+             x:DataType="vm:OcorrenciaViewModel"
+             Title="{Binding Titulo}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="10" MaximumWidthRequest="760">
+            <Border Style="{StaticResource Cartao}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding Status}" FontAttributes="Bold" FontSize="16" />
+                    <Label Text="{Binding Detalhe}" FontAttributes="Bold" />
+                    <Label Text="{Binding Descricao}" />
+                    <Label Text="{Binding Registro}" FontSize="12"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                    <Label Text="{Binding Responsavel}" FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Fotos}" Spacing="8" IsVisible="{Binding TemFotos}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FotoLinha">
+                        <Border StrokeShape="RoundRectangle 8" StrokeThickness="0" WidthRequest="100" HeightRequest="100">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:OcorrenciaViewModel}}, Path=AmpliarFotoCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Image Source="{Binding Imagem}" Aspect="AspectFill" />
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </HorizontalStackLayout>
+
+            <Label Text="{Binding Erro}" TextColor="{StaticResource Erro}"
+                   IsVisible="{Binding Erro, Converter={StaticResource IsStringNotNullOrEmptyConverter}}" />
+            <ActivityIndicator IsRunning="{Binding Ocupado}" IsVisible="{Binding Ocupado}" Color="{StaticResource Primary}" />
+
+            <FlexLayout Wrap="Wrap" JustifyContent="Start" IsVisible="{Binding Administrativo}">
+                <Button Text="➡️ Encaminhar" Command="{Binding EncaminharCommand}" Margin="0,0,8,8" />
+                <Button Text="🔄 Mudar etapa" Command="{Binding MudarEtapaCommand}" Margin="0,0,8,8" />
+            </FlexLayout>
+            <Button Text="💬 Comentar" Command="{Binding ComentarCommand}" HorizontalOptions="Start" />
+
+            <Label Text="Histórico" Style="{StaticResource SubHeadline}" HorizontalOptions="Start" Margin="0,12,0,0" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Movimentos}" Spacing="8">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MovimentoLinha">
+                        <Border Style="{StaticResource Cartao}" Padding="12">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{Binding Titulo}" FontAttributes="Bold" FontSize="14" />
+                                <Label Text="{Binding Autor}" FontSize="12"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                <Label Text="{Binding Texto}" FontSize="14" IsVisible="{Binding TemTexto}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

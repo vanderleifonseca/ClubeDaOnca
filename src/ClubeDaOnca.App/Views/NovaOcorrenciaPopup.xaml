@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+               xmlns:vm="clr-namespace:ClubeDaOnca.App.ViewModels"
+               xmlns:oc="clr-namespace:ClubeDaOnca.Contracts.Ocorrencias;assembly=ClubeDaOnca.Contracts"
+               x:Class="ClubeDaOnca.App.Views.NovaOcorrenciaPopup"
+               x:DataType="vm:NovaOcorrenciaViewModel"
+               x:TypeArguments="oc:OcorrenciaCriadaResponse"
+               Padding="0" Margin="16"
+               BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}">
+
+    <ScrollView MaximumHeightRequest="680">
+        <VerticalStackLayout Padding="20" Spacing="10" WidthRequest="360">
+            <Label Text="⚠️  Registrar ocorrência" Style="{StaticResource SubHeadline}" HorizontalOptions="Start" />
+            <Label Text="Vai direto para a administração do clube. Seu nome, a data e a hora ficam registrados."
+                   FontSize="13" TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+
+            <Entry Text="{Binding Titulo}" Placeholder="Título (ex.: Lâmpada queimada na quadra)" MaxLength="150" />
+            <Picker Title="Categoria" ItemsSource="{Binding Categorias}" ItemDisplayBinding="{Binding Nome, x:DataType=vm:OpcaoCategoria}"
+                    SelectedItem="{Binding Categoria}" />
+            <Entry Text="{Binding Local}" Placeholder="Local (opcional)" MaxLength="100" />
+            <Editor Text="{Binding Descricao}" Placeholder="O que aconteceu?" AutoSize="TextChanges" MaxLength="2000" HeightRequest="110" />
+
+            <Label Text="Fotos (até 3)" FontAttributes="Bold" />
+            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Fotos}" Spacing="8">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FotoNova">
+                        <Grid WidthRequest="84" HeightRequest="84">
+                            <Border StrokeShape="RoundRectangle 8" StrokeThickness="0">
+                                <Image Source="{Binding Miniatura}" Aspect="AspectFill" />
+                            </Border>
+                            <Button Text="✕" Padding="0" WidthRequest="28" HeightRequest="28" CornerRadius="14" FontSize="12"
+                                    HorizontalOptions="End" VerticalOptions="Start" Margin="2"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:NovaOcorrenciaViewModel}}, Path=RemoverFotoCommand}"
+                                    CommandParameter="{Binding .}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding PodeAdicionarFoto}">
+                <Button Text="📷 Tirar foto" Command="{Binding TirarFotoCommand}" IsVisible="{Binding PodeTirarFoto}" />
+                <Button Text="🖼️ Galeria" Command="{Binding EscolherFotosCommand}" />
+            </HorizontalStackLayout>
+
+            <Label Text="{Binding Erro}" TextColor="{StaticResource Erro}"
+                   IsVisible="{Binding Erro, Converter={StaticResource IsStringNotNullOrEmptyConverter}}" />
+            <ActivityIndicator IsRunning="{Binding Enviando}" IsVisible="{Binding Enviando}" Color="{StaticResource Primary}" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
+                <Button Text="Cancelar" Command="{Binding CancelarCommand}" BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                <Button Grid.Column="1" Text="Enviar" Command="{Binding EnviarCommand}"
+                        IsEnabled="{Binding Enviando, Converter={StaticResource InvertedBoolConverter}}" />
+            </Grid>
+        </VerticalStackLayout>
+    </ScrollView>
+</toolkit:Popup>

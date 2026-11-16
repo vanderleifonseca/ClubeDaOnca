@@ -22,6 +22,8 @@ namespace ClubeDaOnca.Api.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.HasSequence<int>("numero_ocorrencia");
+
             modelBuilder.HasSequence<int>("numero_titulo")
                 .StartsAt(1000L);
 
@@ -981,6 +983,168 @@ namespace ClubeDaOnca.Api.Infrastructure.Migrations
                     b.ToTable("Pagamentos", (string)null);
                 });
 
+            modelBuilder.Entity("ClubeDaOnca.Domain.Ocorrencias.FotoOcorrencia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Conteudo")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset>("EnviadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OcorrenciaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Tamanho")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TipoConteudo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OcorrenciaId");
+
+                    b.ToTable("FotosOcorrencia", (string)null);
+                });
+
+            modelBuilder.Entity("ClubeDaOnca.Domain.Ocorrencias.MovimentoOcorrencia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AutorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("AutorNome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTimeOffset>("Em")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OcorrenciaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ParaId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("ParaNome")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("StatusAnterior")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StatusNovo")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Texto")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OcorrenciaId", "Em");
+
+                    b.ToTable("MovimentosOcorrencia", (string)null);
+                });
+
+            modelBuilder.Entity("ClubeDaOnca.Domain.Ocorrencias.Ocorrencia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssociacaoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AtualizadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Local")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Numero")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValueSql("nextval('numero_ocorrencia')");
+
+                    b.Property<DateTimeOffset>("RegistradaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RegistradaPorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("RegistradaPorNome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTimeOffset?>("ResolvidaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResponsavelId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("ResponsavelNome")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssociacaoId");
+
+                    b.HasIndex("RegistradaPorId");
+
+                    b.HasIndex("AssociacaoId", "Status");
+
+                    b.HasIndex("ResponsavelId", "Status");
+
+                    b.ToTable("Ocorrencias", (string)null);
+                });
+
             modelBuilder.Entity("ClubeDaOnca.Domain.Reservas.Espaco", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1770,6 +1934,33 @@ namespace ClubeDaOnca.Api.Infrastructure.Migrations
                     b.Navigation("Cobranca");
                 });
 
+            modelBuilder.Entity("ClubeDaOnca.Domain.Ocorrencias.FotoOcorrencia", b =>
+                {
+                    b.HasOne("ClubeDaOnca.Domain.Ocorrencias.Ocorrencia", null)
+                        .WithMany("Fotos")
+                        .HasForeignKey("OcorrenciaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ClubeDaOnca.Domain.Ocorrencias.MovimentoOcorrencia", b =>
+                {
+                    b.HasOne("ClubeDaOnca.Domain.Ocorrencias.Ocorrencia", null)
+                        .WithMany("Movimentos")
+                        .HasForeignKey("OcorrenciaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ClubeDaOnca.Domain.Ocorrencias.Ocorrencia", b =>
+                {
+                    b.HasOne("ClubeDaOnca.Domain.Associacoes.Associacao", null)
+                        .WithMany()
+                        .HasForeignKey("AssociacaoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ClubeDaOnca.Domain.Reservas.Espaco", b =>
                 {
                     b.HasOne("ClubeDaOnca.Domain.Associacoes.Associacao", null)
@@ -1973,6 +2164,13 @@ namespace ClubeDaOnca.Api.Infrastructure.Migrations
             modelBuilder.Entity("ClubeDaOnca.Domain.Financeiro.Cobranca", b =>
                 {
                     b.Navigation("Pagamentos");
+                });
+
+            modelBuilder.Entity("ClubeDaOnca.Domain.Ocorrencias.Ocorrencia", b =>
+                {
+                    b.Navigation("Fotos");
+
+                    b.Navigation("Movimentos");
                 });
 
             modelBuilder.Entity("ClubeDaOnca.Domain.Socios.Socio", b =>
