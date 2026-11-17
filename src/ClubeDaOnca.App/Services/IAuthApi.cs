@@ -3,6 +3,7 @@ using ClubeDaOnca.Contracts.Auth;
 using ClubeDaOnca.Contracts.Carteirinha;
 using ClubeDaOnca.Contracts.Comunicacao;
 using ClubeDaOnca.Contracts.Contratos;
+using ClubeDaOnca.Contracts.Equipe;
 using ClubeDaOnca.Contracts.Eventos;
 using ClubeDaOnca.Contracts.Financeiro;
 using ClubeDaOnca.Contracts.Ocorrencias;
@@ -185,6 +186,25 @@ public interface IClubeApi
 
     [Get("/eventos/{id}/post/imagem")]
     Task<HttpResponseMessage> ImagemPostEventoAsync(Guid id, CancellationToken ct = default);
+
+    // Equipe da associação (Admin)
+    [Get("/equipe")]
+    Task<List<MembroEquipeDto>> EquipeAsync(CancellationToken ct = default);
+
+    [Post("/equipe")]
+    Task<MembroEquipeCriadoResponse> AdicionarMembroEquipeAsync([Body] NovoMembroEquipeRequest request, CancellationToken ct = default);
+
+    [Put("/equipe/{id}/perfis")]
+    Task<MembroEquipeDto> AlterarPerfisEquipeAsync(string id, [Body] AlterarPerfisEquipeRequest request, CancellationToken ct = default);
+
+    [Post("/equipe/{id}/bloquear")]
+    Task<MembroEquipeDto> BloquearMembroEquipeAsync(string id, CancellationToken ct = default);
+
+    [Post("/equipe/{id}/desbloquear")]
+    Task<MembroEquipeDto> DesbloquearMembroEquipeAsync(string id, CancellationToken ct = default);
+
+    [Post("/equipe/{id}/redefinir-senha")]
+    Task<SenhaRedefinidaResponse> RedefinirSenhaEquipeAsync(string id, CancellationToken ct = default);
 
     // Ocorrências
     [Multipart]

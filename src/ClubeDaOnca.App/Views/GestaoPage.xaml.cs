@@ -26,6 +26,7 @@ public partial class GestaoPage : ContentPage
         CartaoEventos.IsVisible = _sessao.EhSecretaria;
         CartaoComunicados.IsVisible = _sessao.EhSecretaria;
         CartaoAssociacao.IsVisible = _sessao.EhAdmin;
+        CartaoEquipe.IsVisible = _sessao.EhAdmin;
         CartaoAssociacoes.IsVisible = _sessao.EhSuperAdmin;
         CartaoOcorrencias.IsVisible = _sessao.EhAdmin; // ocorrências vão para o Admin, não para a secretaria
         if (_sessao.EhAdmin) await AtualizarResumoOcorrenciasAsync();
@@ -48,6 +49,8 @@ public partial class GestaoPage : ContentPage
             ResumoOcorrencias.IsVisible = false; // offline: o cartão continua abrindo a lista
         }
     }
+
+    private async void AbrirEquipe(object? sender, TappedEventArgs e) => await Shell.Current.GoToAsync("equipe");
 
     private async void AbrirOcorrencias(object? sender, TappedEventArgs e) =>
         await Shell.Current.GoToAsync("ocorrencias", new ShellNavigationQueryParameters { ["gestao"] = true });

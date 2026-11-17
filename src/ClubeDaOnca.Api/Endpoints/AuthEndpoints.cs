@@ -33,12 +33,13 @@ public static class AuthEndpoints
             return Results.Ok(await tokens.EmitirAsync(usuario, ct));
         });
 
-        g.MapPost("/refresh", async (RefreshRequest req, AppDbContext db, TokenService tokens, CancellationToken ct) =>
+        g.MapPost("/refresh", async (RefreshRequest req, AppDbContext db, TokenService tokens, UserManager<Usuario> users, CancellationToken ct) =>
         {
             var hash = TokenService.Hash(req.RefreshToken);
             var atual = await db.RefreshTokens.Include(r => r.Usuario)
                 .FirstOrDefaultAsync(r => r.TokenHash == hash, ct);
-            if (atual is null || !atual.Ativo || atual.Usuario is null || !await AssociacaoAtivaAsync(db, atual.Usuario, ct))
+            if (atual is null || !atual.Ativo || atual.Usuario is null || !await AssociacaoAtivaAsync(db, atual.Usuario, ct)
+                || await users.IsLockedOutAsync(atual.Usuario)) // conta bloqueada pelo Admin perde a sessão
                 return Results.Unauthorized();
 
             // Rotação: o refresh token usado é revogado e um novo é emitido.

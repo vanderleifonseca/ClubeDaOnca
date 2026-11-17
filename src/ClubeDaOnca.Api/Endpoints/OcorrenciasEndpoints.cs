@@ -134,7 +134,7 @@ public static class OcorrenciasEndpoints
 
         var destino = string.IsNullOrWhiteSpace(req.ResponsavelId) ? null : await users.FindByIdAsync(req.ResponsavelId);
         if (destino is null || destino.AssociacaoId != tenant.Exigir()
-            || !await users.IsInRoleAsync(destino, Perfis.Admin))
+            || !await users.IsInRoleAsync(destino, Perfis.Admin) || await users.IsLockedOutAsync(destino))
             return Results.ValidationProblem(new Dictionary<string, string[]>
                 { ["responsavelId"] = ["Escolha um usuário administrador (Admin) desta associação."] });
         if (destino.Id == o.ResponsavelId)

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ClubeDaOnca.App.ViewModels"
+             x:Class="ClubeDaOnca.App.Views.EquipePage"
+             x:DataType="vm:EquipeViewModel"
+             Title="Equipe">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Adicionar" Command="{Binding AdicionarCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <RefreshView Command="{Binding CarregarCommand}" IsRefreshing="{Binding Carregando}">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="10" MaximumWidthRequest="760">
+                <Label Text="Quem trabalha na unidade. Toque em uma pessoa para mudar o perfil, gerar nova senha ou bloquear o acesso."
+                       FontSize="13" TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                <Label Text="{Binding Erro}" TextColor="{StaticResource Erro}"
+                       IsVisible="{Binding Erro, Converter={StaticResource IsStringNotNullOrEmptyConverter}}" />
+                <ActivityIndicator IsRunning="{Binding Ocupado}" IsVisible="{Binding Ocupado}" Color="{StaticResource Primary}" />
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Itens}" Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MembroLinha">
+                            <Border Style="{StaticResource Cartao}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:EquipeViewModel}}, Path=AcoesCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding Nome}" FontAttributes="Bold" />
+                                    <Label Text="{Binding Perfis}" FontSize="13"
+                                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                                    <Label Text="{Binding Email}" FontSize="13" />
+                                    <Label Text="{Binding Situacao}" FontSize="12" IsVisible="{Binding TemSituacao}"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

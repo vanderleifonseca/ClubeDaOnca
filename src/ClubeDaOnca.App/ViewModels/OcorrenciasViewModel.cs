@@ -199,7 +199,7 @@ public partial class OcorrenciaViewModel(IClubeApi api, SessaoService sessao) : 
         var opcoes = lista.Where(r => r.Id != _atual.ResponsavelId).ToList();
         if (opcoes.Count == 0)
         {
-            await Shell.Current.DisplayAlertAsync("Encaminhar", "Não há outro administrador (Admin) nesta associação.", "OK");
+            await Shell.Current.DisplayAlertAsync("Encaminhar", "Não há outro administrador nesta associação. Cadastre em Gestão › Equipe.", "OK");
             return;
         }
         var rotulos = opcoes.Select(r => $"{r.Nome} ({r.Perfil})").ToArray();

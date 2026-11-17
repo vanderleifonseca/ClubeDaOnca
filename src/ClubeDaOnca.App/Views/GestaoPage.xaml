@@ -99,6 +99,16 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border x:Name="CartaoEquipe" Style="{StaticResource Cartao}">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="AbrirEquipe" />
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="🧑‍💼  Equipe" FontAttributes="Bold" FontSize="17" />
+                    <Label Text="Administradores, secretaria e portaria: acessos, perfis e senhas." />
+                </VerticalStackLayout>
+            </Border>
+
             <Border x:Name="CartaoAssociacoes" Style="{StaticResource Cartao}">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="AbrirAssociacoes" />
