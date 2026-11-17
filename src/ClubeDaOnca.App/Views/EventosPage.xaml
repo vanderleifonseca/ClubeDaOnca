@@ -10,7 +10,7 @@
     <RefreshView Command="{Binding CarregarCommand}" IsRefreshing="{Binding Carregando}">
         <ScrollView>
             <VerticalStackLayout Padding="16" Spacing="8" MaximumWidthRequest="900">
-                <Button Text="+ Novo evento" Command="{Binding NovoCommand}" IsVisible="{Binding Gestao}" HorizontalOptions="Start" />
+                <Button Text="+ Novo evento" Command="{Binding NovoCommand}" IsVisible="{Binding PodeGerir}" HorizontalOptions="Start" />
                 <Label Text="{Binding Erro}" TextColor="{StaticResource Erro}"
                        IsVisible="{Binding Erro, Converter={StaticResource IsStringNotNullOrEmptyConverter}}" />
 

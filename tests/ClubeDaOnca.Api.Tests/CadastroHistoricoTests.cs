@@ -78,7 +78,7 @@ public class CadastroHistoricoTests(ApiFactory factory) : IClassFixture<ApiFacto
         var dep = await admin.PostAsJsonAsync($"/socios/{socio.Id}/dependentes",
             new SalvarDependenteRequest("Pedro Souza", null, new DateOnly(2015, 1, 1), "Filho", "Masculino"));
         Assert.Equal(HttpStatusCode.Created, dep.StatusCode);
-        var dependente = (await dep.Content.ReadFromJsonAsync<DependenteDto>())!;
+        var dependente = (await dep.Content.ReadFromJsonAsync<DependenteCriadoResponse>())!.Dependente;
         Assert.Equal("Dependente", dependente.Tipo);
         Assert.Equal("Ana Paula Souza", dependente.TitularNome);
         (await admin.DeleteAsync($"/socios/{socio.Id}/dependentes/{dependente.Id}")).EnsureSuccessStatusCode();

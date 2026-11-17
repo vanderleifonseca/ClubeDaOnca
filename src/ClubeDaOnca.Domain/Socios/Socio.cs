@@ -122,6 +122,9 @@ public sealed class Dependente : IPertenceAssociacao
     public string? Profissao { get; set; }
     public bool Ativo { get; set; } = true;
     public int VersaoChaveQr { get; set; } = 1;
+
+    /// <summary>Login próprio (opcional, quando tem e-mail): o dependente vê a própria carteirinha no celular dele.</summary>
+    public string? UsuarioId { get; set; }
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
 }
 

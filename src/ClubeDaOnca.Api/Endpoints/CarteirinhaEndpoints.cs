@@ -11,14 +11,27 @@ public static class CarteirinhaEndpoints
 {
     public static IEndpointRouteBuilder MapCarteirinha(this IEndpointRouteBuilder app)
     {
-        // Carteirinhas do titular logado e dos seus dependentes ativos.
+        // Titular: a própria carteirinha e a dos dependentes ativos. Dependente com login próprio: só a dele.
         app.MapGet("/carteirinha", async (ClaimsPrincipal user, AppDbContext db, ChavesCarteirinha chaves, CancellationToken ct) =>
         {
             var usuarioId = user.FindFirstValue("sub");
             var socio = await db.Socios.AsNoTracking().Include(s => s.Dependentes)
                 .FirstOrDefaultAsync(s => s.UsuarioId == usuarioId, ct);
             if (socio is null)
-                return Results.Problem(title: "Nenhum título vinculado a esta conta.", statusCode: StatusCodes.Status404NotFound);
+            {
+                var dep = await db.Dependentes.AsNoTracking().Include(d => d.Socio)
+                    .FirstOrDefaultAsync(d => d.UsuarioId == usuarioId, ct);
+                if (dep?.Socio is not { } titular)
+                    return Results.Problem(title: "Nenhum título vinculado a esta conta.", statusCode: StatusCodes.Status404NotFound);
+                if (!dep.Ativo)
+                    return Results.Problem(title: "Carteirinha inativa. Procure a secretaria.", statusCode: StatusCodes.Status404NotFound);
+                return Results.Ok(new List<CarteirinhaDto>
+                {
+                    new(dep.Id, dep.Nome, "Dependente", titular.NumeroTitulo, titular.Categoria.ToString(),
+                        titular.Situacao.ToString(), dep.Parentesco.ToString(), dep.DataNascimento,
+                        Convert.ToBase64String(chaves.Para(dep.Id, dep.VersaoChaveQr))),
+                });
+            }
 
             var lista = new List<CarteirinhaDto>
             {

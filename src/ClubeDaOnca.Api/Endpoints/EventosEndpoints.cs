@@ -9,8 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace ClubeDaOnca.Api.Endpoints;
 
 /// <summary>
-/// Eventos do clube. A secretaria cadastra (checando a agenda dos locais), publica e cancela;
-/// os sócios veem os eventos publicados e reservam ambientes (mesas, quiosques...) dentro deles.
+/// Eventos do clube. O Admin e o presidente do mandato vigente cadastram (checando a agenda dos locais),
+/// publicam, cancelam e divulgam; a secretaria só consulta eventos e reservas.
+/// Os sócios veem os eventos publicados e reservam ambientes (mesas, quiosques...) dentro deles.
 /// </summary>
 public static class EventosEndpoints
 {
@@ -26,9 +27,12 @@ public static class EventosEndpoints
     private static void MapConsulta(RouteGroupBuilder g)
     {
         // Sócio: eventos publicados que ainda não terminaram. Gestão (?todos=true): todos, inclusive rascunhos e cancelados.
-        g.MapGet("/", async (bool? todos, ClaimsPrincipal user, AppDbContext db, RelogioClube relogio, CancellationToken ct) =>
+        g.MapGet("/permissoes", async (ClaimsPrincipal user, PermissaoEventos permissao, CancellationToken ct) =>
+            Results.Ok(new PermissoesEventosDto(await permissao.PodeVerAsync(user, ct), await permissao.PodeGerirAsync(user, ct))));
+
+        g.MapGet("/", async (bool? todos, ClaimsPrincipal user, AppDbContext db, RelogioClube relogio, PermissaoEventos permissao, CancellationToken ct) =>
         {
-            var gestao = todos == true && EhSecretaria(user);
+            var gestao = todos == true && await permissao.PodeVerAsync(user, ct);
             var query = db.Eventos.AsNoTracking().Include(e => e.Locais).ThenInclude(l => l.Espaco).Include(e => e.Ambientes).AsQueryable();
             if (!gestao)
             {
@@ -39,11 +43,11 @@ public static class EventosEndpoints
             return Results.Ok(await MapearAsync(db, eventos, gestao ? null : await SocioIdAsync(db, user, ct), ct));
         });
 
-        g.MapGet("/{id:guid}", async (Guid id, ClaimsPrincipal user, AppDbContext db, CancellationToken ct) =>
+        g.MapGet("/{id:guid}", async (Guid id, ClaimsPrincipal user, AppDbContext db, PermissaoEventos permissao, CancellationToken ct) =>
         {
             var e = await db.Eventos.AsNoTracking().Include(x => x.Locais).ThenInclude(l => l.Espaco).Include(x => x.Ambientes)
                 .FirstOrDefaultAsync(x => x.Id == id, ct);
-            if (e is null || (e.Status != StatusEvento.Publicado && !EhSecretaria(user))) return NaoEncontrado("Evento não encontrado.");
+            if (e is null || (e.Status != StatusEvento.Publicado && !await permissao.PodeVerAsync(user, ct))) return NaoEncontrado("Evento não encontrado.");
             return Results.Ok((await MapearAsync(db, [e], await SocioIdAsync(db, user, ct), ct))[0]);
         });
     }
@@ -56,46 +60,68 @@ public static class EventosEndpoints
             if (req.Termino <= req.Inicio) return Erro("O término deve ser depois do início.");
             var conflitos = await svc.ConflitosAsync((req.Locais ?? []).Distinct().ToList(), req.Inicio, req.Termino, req.IgnorarEventoId, ct);
             return Results.Ok(new DisponibilidadeDto(conflitos.Count == 0, conflitos));
-        }).RequireAuthorization("Secretaria");
+        }).RequireAuthorization(PermissaoEventos.PoliticaGerir);
 
         g.MapPost("/", (SalvarEventoRequest req, EventoService svc, AppDbContext db, CancellationToken ct) =>
             Executar(async () =>
             {
                 var e = await svc.SalvarAsync(null, req, ct);
                 return Results.Created($"/eventos/{e.Id}", await UmAsync(db, e.Id, ct));
-            })).RequireAuthorization("Secretaria");
+            })).RequireAuthorization(PermissaoEventos.PoliticaGerir);
 
         g.MapPut("/{id:guid}", (Guid id, SalvarEventoRequest req, EventoService svc, AppDbContext db, CancellationToken ct) =>
             Executar(async () =>
             {
                 await svc.SalvarAsync(id, req, ct);
                 return Results.Ok(await UmAsync(db, id, ct));
-            })).RequireAuthorization("Secretaria");
+            })).RequireAuthorization(PermissaoEventos.PoliticaGerir);
 
         g.MapPost("/{id:guid}/publicar", (Guid id, EventoService svc, AppDbContext db, CancellationToken ct) =>
             Executar(async () =>
             {
                 await svc.PublicarAsync(id, ct);
                 return Results.Ok(await UmAsync(db, id, ct));
-            })).RequireAuthorization("Secretaria");
+            })).RequireAuthorization(PermissaoEventos.PoliticaGerir);
 
         g.MapPost("/{id:guid}/cancelar", (Guid id, CancelarEventoRequest req, EventoService svc, AppDbContext db, CancellationToken ct) =>
             Executar(async () =>
             {
                 await svc.CancelarAsync(id, req.Motivo, ct);
                 return Results.Ok(await UmAsync(db, id, ct));
-            })).RequireAuthorization("Secretaria");
+            })).RequireAuthorization(PermissaoEventos.PoliticaGerir);
 
         g.MapGet("/{id:guid}/reservas", async (Guid id, AppDbContext db, RelogioClube relogio, CancellationToken ct) =>
         {
             var reservas = await db.ReservasEvento.AsNoTracking().Include(r => r.Evento).Include(r => r.Ambiente).Include(r => r.Socio)
                 .Where(r => r.EventoId == id).OrderBy(r => r.Status).ThenBy(r => r.CriadoEm).ToListAsync(ct);
             return Results.Ok(reservas.Select(r => Mapear(r, relogio.Agora, gestao: true)).ToList());
-        }).RequireAuthorization("Secretaria");
+        }).RequireAuthorization(PermissaoEventos.PoliticaVer);
 
         g.MapPost("/reservas/{reservaId:guid}/cancelar", (Guid reservaId, EventoService svc, RelogioClube relogio, CancellationToken ct) =>
             Executar(async () => Results.Ok(Mapear(await svc.CancelarReservaAsync(reservaId, socioId: null, ct), relogio.Agora, gestao: true))))
-            .RequireAuthorization("Secretaria");
+            .RequireAuthorization(PermissaoEventos.PoliticaGerir);
+
+        // Divulgação do evento aos associados (os comunicados gerais continuam com a secretaria em /divulgacoes).
+        g.MapPost("/{id:guid}/divulgar", async (Guid id, DivulgarEventoRequest req, AppDbContext db,
+            ClubeDaOnca.Api.Infrastructure.Comunicacao.DivulgacaoService divulgacao, CancellationToken ct) =>
+        {
+            var e = await db.Eventos.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (e is null) return NaoEncontrado("Evento não encontrado.");
+            if (e.Status != StatusEvento.Publicado) return Results.Problem(title: "Publique o evento antes de divulgar.", statusCode: StatusCodes.Status409Conflict);
+
+            var erros = new Dictionary<string, string[]>();
+            var mensagem = req.Mensagem?.Trim() ?? string.Empty;
+            if (mensagem.Length is 0 or > 2000) erros["mensagem"] = ["Informe a mensagem (até 2000 caracteres)."];
+            var canais = new List<Domain.Comunicacao.CanalComunicacao>();
+            foreach (var c in req.Canais ?? [])
+                if (Enum.TryParse<Domain.Comunicacao.CanalComunicacao>(c, true, out var canal) && Enum.IsDefined(canal) && !int.TryParse(c, out _)) canais.Add(canal);
+                else erros["canais"] = [$"Canal inválido: {c}. Use App, Email ou WhatsApp."];
+            if (canais.Count == 0 && !erros.ContainsKey("canais")) erros["canais"] = ["Escolha pelo menos um canal."];
+            if (erros.Count > 0) return Results.ValidationProblem(erros);
+
+            var d = await divulgacao.CriarAsync(e.Titulo, mensagem, canais.Distinct().ToList(), e.Id, ct);
+            return Results.Created($"/divulgacoes/{d.Id}", new { d.Id, Status = d.Status.ToString() });
+        }).RequireAuthorization(PermissaoEventos.PoliticaGerir);
     }
 
     private static void MapReservasDoSocio(RouteGroupBuilder g)
@@ -207,7 +233,6 @@ public static class EventosEndpoints
         }
     }
 
-    private static bool EhSecretaria(ClaimsPrincipal user) => user.IsInRole(Perfis.Secretaria) || user.IsInRole(Perfis.Admin);
     private static IResult Erro(string m) => Results.Problem(title: m, statusCode: StatusCodes.Status400BadRequest);
     private static IResult NaoEncontrado(string m) => Results.Problem(title: m, statusCode: StatusCodes.Status404NotFound);
 }

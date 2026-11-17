@@ -94,6 +94,10 @@ public static class SociosEndpoints
             if (await db.Socios.AnyAsync(s => s.Cpf == cpf, ct))
                 return Conflito("Já existe um sócio com este CPF.");
 
+            // Dependentes cadastrados junto com o titular: tudo é validado antes de gravar qualquer coisa.
+            var (dependentes, erroDependentes) = await ValidarDependentesNovosAsync(req.Dependentes ?? [], cpf, email, db, users, ct);
+            if (erroDependentes is not null) return erroDependentes;
+
             await using var tx = await db.Database.BeginTransactionAsync(ct);
 
             // Reaproveita a conta se a pessoa já tiver uma (ex.: funcionário que também é sócio).
@@ -145,10 +149,26 @@ public static class SociosEndpoints
             Aplicar(socio, req, categoria);
             db.Socios.Add(socio);
             await db.SaveChangesAsync(ct);
+
+            var acessos = new List<AcessoDependenteDto>();
+            var novos = dependentes.Select(x =>
+            {
+                var d = new Dependente { SocioId = socio.Id, Socio = socio };
+                AplicarDependente(d, x.Req, x.Cpf, x.Parentesco);
+                db.Dependentes.Add(d);
+                return d;
+            }).ToList();
+            if (novos.Count > 0) await db.SaveChangesAsync(ct);
+            foreach (var d in novos)
+            {
+                var (acesso, erro) = await AcessoDependente.CriarAsync(users, db, d, ct);
+                if (erro is not null) return Conflito(erro); // a transação não é confirmada: nada fica gravado
+                if (acesso is not null) acessos.Add(acesso);
+            }
             await tx.CommitAsync(ct);
 
             return Results.Created($"/socios/{socio.Id}",
-                new SocioCriadoResponse(await MapearAsync(db, socio, ct), usuario.Email ?? email, senhaProvisoria));
+                new SocioCriadoResponse(await MapearAsync(db, socio, ct), usuario.Email ?? email, senhaProvisoria, acessos));
         });
 
         g.MapPut("/{id:guid}", async (Guid id, SalvarSocioRequest req, AppDbContext db, UserManager<Usuario> users, CancellationToken ct) =>
@@ -209,7 +229,7 @@ public static class SociosEndpoints
             return Results.NoContent();
         });
 
-        g.MapPost("/{id:guid}/dependentes", async (Guid id, SalvarDependenteRequest req, AppDbContext db, CancellationToken ct) =>
+        g.MapPost("/{id:guid}/dependentes", async (Guid id, SalvarDependenteRequest req, AppDbContext db, UserManager<Usuario> users, CancellationToken ct) =>
         {
             var erros = ValidarDependente(req, out var parentesco);
             if (erros.Count > 0) return Results.ValidationProblem(erros);
@@ -220,16 +240,22 @@ public static class SociosEndpoints
             var cpf = string.IsNullOrWhiteSpace(req.Cpf) ? null : Cpf.Normalizar(req.Cpf);
             if (cpf is not null && await CpfEmUsoAsync(db, cpf, null, ct))
                 return Conflito("Este CPF já está cadastrado.");
+            if (Vazio(req.Email)?.ToLowerInvariant() is { } email && await users.FindByEmailAsync(email) is not null)
+                return Conflito(AcessoDependente.MensagemEmailEmUso(email));
 
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
             var dependente = new Dependente { SocioId = socio.Id, Socio = socio };
             AplicarDependente(dependente, req, cpf, parentesco);
             db.Dependentes.Add(dependente);
             await db.SaveChangesAsync(ct);
+            var (acesso, erro) = await AcessoDependente.CriarAsync(users, db, dependente, ct);
+            if (erro is not null) return Conflito(erro);
+            await tx.CommitAsync(ct);
 
-            return Results.Created($"/socios/{id}/dependentes/{dependente.Id}", MapearDependente(dependente));
+            return Results.Created($"/socios/{id}/dependentes/{dependente.Id}", new DependenteCriadoResponse(MapearDependente(dependente), acesso));
         });
 
-        g.MapPut("/{id:guid}/dependentes/{dependenteId:guid}", async (Guid id, Guid dependenteId, SalvarDependenteRequest req, AppDbContext db, CancellationToken ct) =>
+        g.MapPut("/{id:guid}/dependentes/{dependenteId:guid}", async (Guid id, Guid dependenteId, SalvarDependenteRequest req, AppDbContext db, UserManager<Usuario> users, CancellationToken ct) =>
         {
             var erros = ValidarDependente(req, out var parentesco);
             if (erros.Count > 0) return Results.ValidationProblem(erros);
@@ -240,6 +266,8 @@ public static class SociosEndpoints
             var cpf = string.IsNullOrWhiteSpace(req.Cpf) ? null : Cpf.Normalizar(req.Cpf);
             if (cpf is not null && await CpfEmUsoAsync(db, cpf, dependenteId, ct))
                 return Conflito("Este CPF já está cadastrado.");
+            if (await AcessoDependente.AtualizarEmailAsync(users, dependente, Vazio(req.Email)?.ToLowerInvariant()) is { } erroEmail)
+                return Conflito(erroEmail);
 
             AplicarDependente(dependente, req, cpf, parentesco);
             await db.SaveChangesAsync(ct);
@@ -247,22 +275,74 @@ public static class SociosEndpoints
         });
 
         // Dependentes não são apagados (histórico de acessos); apenas inativados.
-        g.MapDelete("/{id:guid}/dependentes/{dependenteId:guid}", (Guid id, Guid dependenteId, AppDbContext db, CancellationToken ct) =>
-            DefinirAtivoAsync(db, id, dependenteId, false, ct));
+        g.MapDelete("/{id:guid}/dependentes/{dependenteId:guid}", (Guid id, Guid dependenteId, AppDbContext db, UserManager<Usuario> users, CancellationToken ct) =>
+            DefinirAtivoAsync(db, users, id, dependenteId, false, ct));
 
-        g.MapPost("/{id:guid}/dependentes/{dependenteId:guid}/reativar", (Guid id, Guid dependenteId, AppDbContext db, CancellationToken ct) =>
-            DefinirAtivoAsync(db, id, dependenteId, true, ct));
+        g.MapPost("/{id:guid}/dependentes/{dependenteId:guid}/reativar", (Guid id, Guid dependenteId, AppDbContext db, UserManager<Usuario> users, CancellationToken ct) =>
+            DefinirAtivoAsync(db, users, id, dependenteId, true, ct));
+
+        // Login próprio do dependente: cria (exige e-mail) ou gera nova senha provisória.
+        g.MapPost("/{id:guid}/dependentes/{dependenteId:guid}/acesso", async (Guid id, Guid dependenteId, AppDbContext db, UserManager<Usuario> users, CancellationToken ct) =>
+        {
+            var d = await db.Dependentes.Include(x => x.Socio).FirstOrDefaultAsync(x => x.Id == dependenteId && x.SocioId == id, ct);
+            if (d is null) return NaoEncontrado("Dependente não encontrado.");
+            if (!d.Ativo) return Conflito("Dependente inativo: reative antes de gerar o acesso.");
+            if (d.UsuarioId is null && string.IsNullOrWhiteSpace(d.Email))
+                return Results.ValidationProblem(Erro("email", "Cadastre o e-mail do dependente para criar o login dele."));
+
+            var (acesso, erro) = d.UsuarioId is null
+                ? await AcessoDependente.CriarAsync(users, db, d, ct)
+                : await AcessoDependente.RedefinirSenhaAsync(users, db, d, ct);
+            return erro is not null ? Conflito(erro) : Results.Ok(acesso);
+        });
 
         return app;
     }
 
-    private static async Task<IResult> DefinirAtivoAsync(AppDbContext db, Guid socioId, Guid dependenteId, bool ativo, CancellationToken ct)
+    private static async Task<IResult> DefinirAtivoAsync(AppDbContext db, UserManager<Usuario> users, Guid socioId, Guid dependenteId, bool ativo, CancellationToken ct)
     {
         var dependente = await db.Dependentes.Include(d => d.Socio).FirstOrDefaultAsync(d => d.Id == dependenteId && d.SocioId == socioId, ct);
         if (dependente is null) return NaoEncontrado("Dependente não encontrado.");
         dependente.Ativo = ativo;
         await db.SaveChangesAsync(ct);
+        await AcessoDependente.DefinirBloqueioAsync(users, db, dependente, ativo, ct); // inativo não entra no app
         return Results.Ok(MapearDependente(dependente));
+    }
+
+    private sealed record DependenteNovo(SalvarDependenteRequest Req, string? Cpf, Parentesco Parentesco);
+
+    /// <summary>Valida os dependentes enviados junto com o novo titular (campos, CPF e e-mail repetidos ou já usados).</summary>
+    private static async Task<(List<DependenteNovo> Dependentes, IResult? Erro)> ValidarDependentesNovosAsync(
+        IReadOnlyList<SalvarDependenteRequest> lista, string cpfTitular, string emailTitular, AppDbContext db, UserManager<Usuario> users, CancellationToken ct)
+    {
+        var erros = new Dictionary<string, string[]>();
+        var validos = new List<DependenteNovo>();
+        var cpfs = new HashSet<string> { cpfTitular };
+        var emails = new HashSet<string> { emailTitular };
+        for (var i = 0; i < lista.Count; i++)
+        {
+            var req = lista[i];
+            var rotulo = string.IsNullOrWhiteSpace(req.Nome) ? $"Dependente {i + 1}" : req.Nome.Trim();
+            var errosDep = ValidarDependente(req, out var parentesco);
+            foreach (var (campo, msgs) in errosDep)
+                erros[$"dependentes[{i}].{campo}"] = msgs.Select(m => $"{rotulo}: {m}").ToArray();
+            var cpf = string.IsNullOrWhiteSpace(req.Cpf) || !Cpf.EhValido(req.Cpf) ? null : Cpf.Normalizar(req.Cpf);
+            if (cpf is not null && !cpfs.Add(cpf))
+                erros[$"dependentes[{i}].cpf"] = [$"{rotulo}: CPF repetido neste cadastro."];
+            if (Vazio(req.Email)?.ToLowerInvariant() is { } email && !emails.Add(email))
+                erros[$"dependentes[{i}].email"] = [$"{rotulo}: e-mail repetido. Cada pessoa com login precisa de um e-mail próprio."];
+            validos.Add(new DependenteNovo(req, cpf, parentesco));
+        }
+        if (erros.Count > 0) return ([], Results.ValidationProblem(erros));
+
+        foreach (var d in validos)
+        {
+            if (d.Cpf is not null && await CpfEmUsoAsync(db, d.Cpf, null, ct))
+                return ([], Conflito($"{d.Req.Nome.Trim()}: este CPF já está cadastrado."));
+            if (Vazio(d.Req.Email)?.ToLowerInvariant() is { } email && await users.FindByEmailAsync(email) is not null)
+                return ([], Conflito(AcessoDependente.MensagemEmailEmUso(email)));
+        }
+        return (validos, null);
     }
 
     private static Task<Socio?> BuscarAsync(AppDbContext db, Guid id, CancellationToken ct) =>
@@ -416,7 +496,7 @@ public static class SociosEndpoints
 
     private static DependenteDto MapearDependente(Dependente d) =>
         new(d.Id, d.Nome, d.Cpf, d.DataNascimento, d.Parentesco.ToString(), d.Ativo,
-            d.Genero.ToString(), d.Email, d.Telefone, d.Profissao, "Dependente", d.Socio?.Nome);
+            d.Genero.ToString(), d.Email, d.Telefone, d.Profissao, "Dependente", d.Socio?.Nome, d.UsuarioId is not null);
 
     private static Dictionary<string, string[]> Erro(string campo, string mensagem) => new() { [campo] = [mensagem] };
 

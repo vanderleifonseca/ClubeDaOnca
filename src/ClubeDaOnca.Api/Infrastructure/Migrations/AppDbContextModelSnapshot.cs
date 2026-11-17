@@ -1332,6 +1332,9 @@ namespace ClubeDaOnca.Api.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("UsuarioId")
+                        .HasColumnType("text");
+
                     b.Property<int>("VersaoChaveQr")
                         .HasColumnType("integer");
 
@@ -1340,6 +1343,9 @@ namespace ClubeDaOnca.Api.Infrastructure.Migrations
                     b.HasIndex("AssociacaoId");
 
                     b.HasIndex("SocioId");
+
+                    b.HasIndex("UsuarioId")
+                        .IsUnique();
 
                     b.HasIndex("AssociacaoId", "Cpf")
                         .IsUnique();
@@ -2008,6 +2014,11 @@ namespace ClubeDaOnca.Api.Infrastructure.Migrations
                         .HasForeignKey("SocioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ClubeDaOnca.Api.Infrastructure.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Socio");
                 });

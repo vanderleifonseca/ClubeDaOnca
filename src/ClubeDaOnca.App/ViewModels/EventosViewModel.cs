@@ -27,6 +27,9 @@ public partial class EventosViewModel(IClubeApi api) : ObservableObject, IQueryA
     public ObservableCollection<ReservaEventoLinha> MinhasReservas { get; } = [];
 
     [ObservableProperty] public partial bool Gestao { get; set; }
+
+    /// <summary>Admin e presidente criam e editam; a secretaria só consulta.</summary>
+    [ObservableProperty] public partial bool PodeGerir { get; set; }
     [ObservableProperty] public partial bool TemMinhasReservas { get; set; }
     [ObservableProperty] public partial bool SemEventos { get; set; }
     [ObservableProperty] public partial bool Carregando { get; set; }
@@ -43,6 +46,7 @@ public partial class EventosViewModel(IClubeApi api) : ObservableObject, IQueryA
         try
         {
             // Busca antes de limpar: duas cargas simultâneas (Appearing + RefreshView) não duplicam a lista.
+            if (Gestao) PodeGerir = (await api.PermissoesEventosAsync()).PodeGerir;
             var carregados = await api.EventosAsync(Gestao ? true : null);
             Itens.Clear();
             foreach (var e in carregados) Itens.Add(new EventoLinha(e));
@@ -87,13 +91,14 @@ public partial class EventosViewModel(IClubeApi api) : ObservableObject, IQueryA
     }
 }
 
-public sealed record ReservaEventoLinha(ReservaEventoDto Dto)
+/// <param name="Permitido">Quem está vendo pode cancelar reservas (a secretaria só consulta).</param>
+public sealed record ReservaEventoLinha(ReservaEventoDto Dto, bool Permitido = true)
 {
     public string Titulo => $"{Dto.Evento} · {Dto.Ambiente}";
     public string Detalhe => $"{Dto.EventoInicio:dd/MM/yyyy HH:mm} · {Dto.Pessoas} pessoa(s)" +
         (Dto.Valor > 0 ? $" · {Opcoes.Moeda(Dto.Valor)}" : "") + (Dto.Status == "Cancelada" ? " · cancelada" : "");
     public string Socio => $"{Dto.Socio} · título {Dto.NumeroTitulo}";
-    public bool PodeCancelar => Dto.PodeCancelar;
+    public bool PodeCancelar => Permitido && Dto.PodeCancelar;
 }
 
 public sealed record AmbienteLinha(AmbienteEventoDto Dto)
@@ -231,6 +236,11 @@ public partial class EventoViewModel(IClubeApi api) : ObservableObject, IQueryAt
     [ObservableProperty] public partial bool PodePublicar { get; set; }
     [ObservableProperty] public partial bool PodeCancelar { get; set; }
     [ObservableProperty] public partial bool Editavel { get; set; } = true;
+
+    /// <summary>Admin e presidente gerenciam; a secretaria só consulta o evento e as reservas.</summary>
+    [ObservableProperty] public partial bool PodeGerir { get; set; }
+    [ObservableProperty] public partial bool PodeDivulgar { get; set; }
+    [ObservableProperty] public partial bool SoConsulta { get; set; }
     [ObservableProperty] public partial string? Agenda { get; set; }
     [ObservableProperty] public partial bool AgendaLivre { get; set; }
     [ObservableProperty] public partial bool TemReservas { get; set; }
@@ -250,6 +260,9 @@ public partial class EventoViewModel(IClubeApi api) : ObservableObject, IQueryAt
     {
         await Executar(async () =>
         {
+            PodeGerir = (await api.PermissoesEventosAsync()).PodeGerir;
+            SoConsulta = !PodeGerir;
+            Editavel = PodeGerir;
             var espacos = await api.EspacosAsync(todos: true);
             if (_evento is { } atual) _evento = await api.EventoAsync(atual.Id);
             Locais.Clear();
@@ -277,10 +290,11 @@ public partial class EventoViewModel(IClubeApi api) : ObservableObject, IQueryAt
         Status = Opcoes.StatusEvento(e.Status) + (e.MotivoCancelamento is null ? "" : $": {e.MotivoCancelamento}") +
                  $" · {e.PessoasReservadas} de {e.Capacidade} pessoas reservadas";
         Existe = true;
-        Editavel = e.Status != "Cancelado";
-        PodePublicar = e.Status == "Rascunho";
-        PodeCancelar = e.Status != "Cancelado";
-        PodePostRedes = e.AbertoAoPublico && e.Status != "Cancelado";
+        Editavel = PodeGerir && e.Status != "Cancelado";
+        PodePublicar = PodeGerir && e.Status == "Rascunho";
+        PodeCancelar = PodeGerir && e.Status != "Cancelado";
+        PodeDivulgar = PodeGerir && e.Status == "Publicado";
+        PodePostRedes = PodeGerir && e.AbertoAoPublico && e.Status != "Cancelado";
         Ambientes.Clear();
         foreach (var a in e.Ambientes)
             Ambientes.Add(new AmbienteEdicao
@@ -393,7 +407,7 @@ public partial class EventoViewModel(IClubeApi api) : ObservableObject, IQueryAt
             "Mensagem (app, e-mail e WhatsApp). Quem desligou um canal não recebe por ele.", "Enviar", "Cancelar",
             initialValue: $"{_evento.Titulo}: {new EventoLinha(_evento).Quando}. Reserve pelo app, na aba Eventos.", maxLength: 2000);
         if (string.IsNullOrWhiteSpace(texto)) return;
-        await api.CriarDivulgacaoAsync(new Contracts.Comunicacao.NovaDivulgacaoRequest(_evento.Titulo, texto, ["App", "Email", "WhatsApp"], _evento.Id));
+        await api.DivulgarEventoAsync(_evento.Id, new DivulgarEventoRequest(texto, ["App", "Email", "WhatsApp"]));
         await Shell.Current.DisplayAlertAsync("Divulgação", "Enviando aos associados. Acompanhe em Gestão → Comunicados.", "OK");
     });
 
@@ -420,7 +434,7 @@ public partial class EventoViewModel(IClubeApi api) : ObservableObject, IQueryAt
         // Busca antes de limpar: duas cargas simultâneas (Appearing + RefreshView) não duplicam a lista.
         var carregados = await api.ReservasDoEventoAsync(_evento.Id);
         Reservas.Clear();
-        foreach (var r in carregados) Reservas.Add(new ReservaEventoLinha(r));
+        foreach (var r in carregados) Reservas.Add(new ReservaEventoLinha(r, PodeGerir));
         TemReservas = true;
         SemReservas = Reservas.Count == 0;
     });

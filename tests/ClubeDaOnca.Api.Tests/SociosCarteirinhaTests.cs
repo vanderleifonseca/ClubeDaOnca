@@ -100,7 +100,7 @@ public class SociosCarteirinhaTests(ApiFactory factory) : IClassFixture<ApiFacto
         Assert.Equal(HttpStatusCode.Created, dep.StatusCode);
         var inativo = (await (await admin.PostAsJsonAsync($"/socios/{criado.Socio.Id}/dependentes",
             new SalvarDependenteRequest("Ana da Silva", null, new DateOnly(2012, 7, 1), "Filho")))
-            .Content.ReadFromJsonAsync<DependenteDto>())!;
+            .Content.ReadFromJsonAsync<DependenteCriadoResponse>())!.Dependente;
         await admin.DeleteAsync($"/socios/{criado.Socio.Id}/dependentes/{inativo.Id}");
 
         var socio = await ClienteAsync(criado.Login, criado.SenhaProvisoria!);

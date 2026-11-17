@@ -28,7 +28,8 @@ public sealed record DependenteDto(
     string? Telefone = null,
     string? Profissao = null,
     string Tipo = "Dependente",
-    string? TitularNome = null);
+    string? TitularNome = null,
+    bool TemAcesso = false);
 
 public sealed record SocioDto(
     Guid Id,
@@ -68,13 +69,22 @@ public sealed record SalvarSocioRequest(
     DateOnly? DataCadastro = null,
     string? Nacionalidade = null,
     string? EstadoCivil = null,
-    string? Rg = null);
+    string? Rg = null,
+    IReadOnlyList<SalvarDependenteRequest>? Dependentes = null);
 
 /// <param name="SenhaProvisoria">
 /// Senha de primeiro acesso ao app, exibida uma única vez para a secretaria entregar ao sócio.
 /// Nula quando o sócio já tinha conta.
 /// </param>
-public sealed record SocioCriadoResponse(SocioDto Socio, string Login, string? SenhaProvisoria);
+/// <param name="Acessos">Logins criados para os dependentes cadastrados junto (só os que têm e-mail).</param>
+public sealed record SocioCriadoResponse(SocioDto Socio, string Login, string? SenhaProvisoria,
+    IReadOnlyList<AcessoDependenteDto>? Acessos = null);
+
+/// <summary>Login próprio de um dependente, para ver a carteirinha no celular dele.</summary>
+public sealed record AcessoDependenteDto(Guid DependenteId, string Nome, string Login, string SenhaProvisoria);
+
+/// <param name="Acesso">Login criado agora (nulo quando o dependente não tem e-mail).</param>
+public sealed record DependenteCriadoResponse(DependenteDto Dependente, AcessoDependenteDto? Acesso);
 
 public sealed record AlterarSituacaoRequest(string Situacao);
 

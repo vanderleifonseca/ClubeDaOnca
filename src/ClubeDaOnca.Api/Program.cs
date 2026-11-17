@@ -68,7 +68,15 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Secretaria", p => p.RequireRole(Perfis.Secretaria, Perfis.Admin))
     .AddPolicy("Admin", p => p.RequireRole(Perfis.Admin))
     .AddPolicy("SuperAdmin", p => p.RequireRole(Perfis.SuperAdmin))
-    .AddPolicy("AdminOuSuperAdmin", p => p.RequireRole(Perfis.Admin, Perfis.SuperAdmin));
+    .AddPolicy("AdminOuSuperAdmin", p => p.RequireRole(Perfis.Admin, Perfis.SuperAdmin))
+    // Eventos: Admin e presidente do mandato vigente gerenciam; a secretaria só consulta.
+    .AddPolicy(ClubeDaOnca.Api.Infrastructure.Eventos.PermissaoEventos.PoliticaGerir,
+        p => p.AddRequirements(new ClubeDaOnca.Api.Infrastructure.Eventos.GerirEventosRequisito()))
+    .AddPolicy(ClubeDaOnca.Api.Infrastructure.Eventos.PermissaoEventos.PoliticaVer,
+        p => p.AddRequirements(new ClubeDaOnca.Api.Infrastructure.Eventos.VerEventosRequisito()));
+builder.Services.AddScoped<ClubeDaOnca.Api.Infrastructure.Eventos.PermissaoEventos>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClubeDaOnca.Api.Infrastructure.Eventos.GerirEventosHandler>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ClubeDaOnca.Api.Infrastructure.Eventos.VerEventosHandler>();
 
 var carteirinha = builder.Configuration.GetSection(CarteirinhaOptions.Secao).Get<CarteirinhaOptions>() ?? new CarteirinhaOptions();
 builder.Services.AddSingleton(ChavesCarteirinha.Criar(carteirinha));

@@ -86,6 +86,39 @@
                 <Entry Grid.Column="1" Grid.Row="1" Text="{Binding Uf}" MaxLength="2" />
             </Grid>
 
+            <!-- Sócio novo: dependentes vão junto ao salvar -->
+            <VerticalStackLayout IsVisible="{Binding EhEdicao, Converter={StaticResource InvertedBoolConverter}}" Spacing="8" Margin="0,16,0,0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="Dependentes" Style="{StaticResource SubHeadline}" HorizontalOptions="Start" VerticalOptions="Center" />
+                    <Button Grid.Column="1" Text="+ Adicionar" Command="{Binding NovoDependenteCommand}" />
+                </Grid>
+                <Label Text="Cônjuge, filhos e demais dependentes. Cada um tem carteirinha; quem tiver e-mail ganha login próprio."
+                       FontSize="13" TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                <Label Text="Nenhum dependente adicionado." IsVisible="{Binding SemDependentesNovos}"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding DependentesNovos}" Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DependenteNovoLinha">
+                            <Border Style="{StaticResource Cartao}">
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Nome}" FontAttributes="Bold" />
+                                        <Label Text="{Binding Detalhe}" FontSize="13"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="Editar" VerticalOptions="Center"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SocioViewModel}}, Path=EditarDependenteNovoCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="2" Text="Remover" VerticalOptions="Center"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SocioViewModel}}, Path=RemoverDependenteNovoCommand}"
+                                            CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
             <Label Text="{Binding Erro}" TextColor="{StaticResource Erro}"
                    IsVisible="{Binding Erro, Converter={StaticResource IsStringNotNullOrEmptyConverter}}" />
 

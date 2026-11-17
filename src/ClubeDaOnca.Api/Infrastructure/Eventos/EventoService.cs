@@ -93,7 +93,7 @@ public sealed class EventoService(AppDbContext db, FinanceiroService financeiro,
         evento.DivulgarAssociados = req.DivulgarAssociados;
         evento.DivulgarRedesSociais = req.DivulgarRedesSociais;
         evento.PrazoCancelamentoHoras = req.PrazoCancelamentoHoras;
-        AplicarAmbientes(evento, req.Ambientes ?? []);
+        var ambientesNovos = AplicarAmbientes(evento, req.Ambientes ?? []);
 
         var erros = RegrasEvento.ValidarCadastro(evento, locais, relogio.Agora, novo: id is null);
         if (erros.Count > 0) throw new EventoException("Corrija os dados do evento.", erros);
@@ -110,12 +110,16 @@ public sealed class EventoService(AppDbContext db, FinanceiroService financeiro,
             evento.Locais.Add(new EventoLocal { EventoId = evento.Id, EspacoId = lid });
 
         if (id is null) db.Eventos.Add(evento);
+        // Evento já existente: o Id do ambiente novo já vem preenchido, e sem isto o EF tentaria um UPDATE (0 linhas).
+        else db.AmbientesEvento.AddRange(ambientesNovos);
         await db.SaveChangesAsync(ct);
         return evento;
     }
 
-    private static void AplicarAmbientes(Evento evento, IReadOnlyList<SalvarAmbienteRequest> ambientes)
+    /// <summary>Aplica a lista de ambientes e devolve os que foram criados agora.</summary>
+    private static List<AmbienteEvento> AplicarAmbientes(Evento evento, IReadOnlyList<SalvarAmbienteRequest> ambientes)
     {
+        var novos = new List<AmbienteEvento>();
         var manter = ambientes.Where(a => a.Id is not null).Select(a => a.Id!.Value).ToHashSet();
         var removidos = evento.Ambientes.Where(a => !manter.Contains(a.Id)).ToList();
         if (removidos.FirstOrDefault(a => a.Reservadas > 0) is { } comReserva)
@@ -129,6 +133,7 @@ public sealed class EventoService(AppDbContext db, FinanceiroService financeiro,
             {
                 a = new AmbienteEvento { EventoId = evento.Id };
                 evento.Ambientes.Add(a);
+                novos.Add(a);
             }
             a.Nome = (req.Nome ?? string.Empty).Trim();
             a.PessoasPorReserva = req.PessoasPorReserva;
@@ -136,6 +141,7 @@ public sealed class EventoService(AppDbContext db, FinanceiroService financeiro,
             a.LimitePorSocio = req.LimitePorSocio;
             a.Valor = Math.Round(req.Valor, 2);
         }
+        return novos;
     }
 
     public async Task<Evento> PublicarAsync(Guid id, CancellationToken ct = default)

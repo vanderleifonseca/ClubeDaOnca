@@ -116,7 +116,8 @@ public static class ComunicacaoEndpoints
 
     private static void MapPostRedes(IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/eventos/{id:guid}/post").WithTags("Divulgação").RequireAuthorization("Secretaria");
+        var g = app.MapGroup("/eventos/{id:guid}/post").WithTags("Divulgação")
+            .RequireAuthorization(Infrastructure.Eventos.PermissaoEventos.PoliticaVer);
 
         g.MapGet("/", async (Guid id, HttpRequest http, AppDbContext db, CancellationToken ct) =>
         {

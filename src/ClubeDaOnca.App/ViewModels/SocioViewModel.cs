@@ -17,6 +17,14 @@ public sealed record DependenteLinha(DependenteDto Dto)
     public string AcaoAtivo => Dto.Ativo ? "Inativar" : "Reativar";
 }
 
+/// <summary>Dependente informado no cadastro de um sócio novo (vai junto quando o sócio for salvo).</summary>
+public sealed record DependenteNovoLinha(SalvarDependenteRequest Req)
+{
+    public string Nome => Req.Nome;
+    public string Detalhe => $"{Opcoes.Texto(Opcoes.Parentescos, Req.Parentesco)} · {Req.DataNascimento:dd/MM/yyyy}" +
+        (string.IsNullOrWhiteSpace(Req.Email) ? " · sem login (carteirinha no celular do titular)" : $" · login próprio: {Req.Email}");
+}
+
 /// <summary>Uma linha do histórico: "10/11/2026 14:32 · Maria (secretaria)" + "Telefone: A → B".</summary>
 public sealed record HistoricoLinha(HistoricoDto Dto)
 {
@@ -44,6 +52,7 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
     public IReadOnlyList<Opcao> Generos => Opcoes.Generos;
     public IReadOnlyList<Opcao> EstadosCivis => Opcoes.EstadosCivis;
     public ObservableCollection<DependenteLinha> Dependentes { get; } = [];
+    public ObservableCollection<DependenteNovoLinha> DependentesNovos { get; } = [];
     public ObservableCollection<HistoricoLinha> Historico { get; } = [];
 
     [ObservableProperty]
@@ -81,6 +90,8 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
     [ObservableProperty] public partial string Uf { get; set; } = string.Empty;
 
     [ObservableProperty] public partial bool SemDependentes { get; set; } = true;
+    [ObservableProperty] public partial bool SemDependentesNovos { get; set; } = true;
+    private int? _editandoNovo;
     [ObservableProperty] public partial bool SemHistorico { get; set; } = true;
     [ObservableProperty] public partial bool Ocupado { get; set; }
     [ObservableProperty] public partial string? Erro { get; set; }
@@ -91,6 +102,32 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
     {
         if (query.TryGetValue("id", out var v) && Guid.TryParse(v?.ToString(), out var id))
             Id = id;
+
+        // Volta da tela de dependente (sócio ainda não salvo): inclui ou substitui o que estava sendo editado.
+        if (query.TryGetValue("dependenteNovo", out var d) && d is SalvarDependenteRequest novo)
+        {
+            if (_editandoNovo is { } i && i < DependentesNovos.Count) DependentesNovos[i] = new DependenteNovoLinha(novo);
+            else DependentesNovos.Add(new DependenteNovoLinha(novo));
+            SemDependentesNovos = DependentesNovos.Count == 0;
+        }
+        _editandoNovo = null; // parâmetros de objeto do Shell são de uso único: não se repetem ao voltar
+    }
+
+    [RelayCommand]
+    private Task EditarDependenteNovoAsync(DependenteNovoLinha linha)
+    {
+        _editandoNovo = DependentesNovos.IndexOf(linha);
+        return Shell.Current.GoToAsync("dependente", new ShellNavigationQueryParameters
+        {
+            ["rascunho"] = true, ["rascunhoAtual"] = linha.Req, ["titular"] = string.IsNullOrWhiteSpace(Nome) ? "novo sócio" : Nome,
+        });
+    }
+
+    [RelayCommand]
+    private void RemoverDependenteNovo(DependenteNovoLinha linha)
+    {
+        DependentesNovos.Remove(linha);
+        SemDependentesNovos = DependentesNovos.Count == 0;
     }
 
     [RelayCommand]
@@ -141,7 +178,8 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
                 Genero?.Valor ?? "NaoInformado", Profissao,
                 new EnderecoDto(Cep, Logradouro, Numero, Complemento, Bairro, Cidade, Uf),
                 DateOnly.FromDateTime(DataCadastro),
-                Nacionalidade, EstadoCivil?.Valor ?? "NaoInformado", Rg);
+                Nacionalidade, EstadoCivil?.Valor ?? "NaoInformado", Rg,
+                Id is null ? DependentesNovos.Select(x => x.Req).ToList() : null);
 
             if (Id is { } id)
             {
@@ -152,6 +190,8 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
             else
             {
                 var criado = await api.CriarSocioAsync(req);
+                DependentesNovos.Clear(); // agora aparecem na lista de dependentes do título
+                SemDependentesNovos = true;
                 Id = criado.Socio.Id;
                 Mostrar(criado.Socio);
                 await CarregarHistoricoAsync(criado.Socio.Id);
@@ -160,6 +200,8 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
                     ? $"O sócio já tinha conta. Login: {criado.Login}"
                     : $"Login: {criado.Login}\nSenha provisória: {criado.SenhaProvisoria}\n\n" +
                       "Anote e entregue ao sócio. Esta senha não será exibida novamente e precisa ser trocada no primeiro acesso.";
+                foreach (var a in criado.Acessos ?? [])
+                    acesso += $"\n\nDependente {a.Nome}\nLogin: {a.Login}\nSenha provisória: {a.SenhaProvisoria}";
                 await Alerta($"Título nº {criado.Socio.NumeroTitulo} criado", acesso);
             }
         }
@@ -214,7 +256,10 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
     private Task NovoDependenteAsync() =>
         Id is { } id
             ? Shell.Current.GoToAsync($"dependente?socioId={id}", new ShellNavigationQueryParameters { ["titular"] = Nome })
-            : Task.CompletedTask;
+            : Shell.Current.GoToAsync("dependente", new ShellNavigationQueryParameters
+            {
+                ["rascunho"] = true, ["titular"] = string.IsNullOrWhiteSpace(Nome) ? "novo sócio" : Nome,
+            });
 
     [RelayCommand]
     private Task AbrirDependenteAsync(DependenteLinha? linha) =>

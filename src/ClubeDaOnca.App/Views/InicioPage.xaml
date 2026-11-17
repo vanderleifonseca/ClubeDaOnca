@@ -45,6 +45,16 @@
 
             <Border Style="{StaticResource Cartao}" IsVisible="{Binding EhPresidente}">
                 <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GerenciarEventosCommand}" />
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="🎉  Gerenciar eventos" FontAttributes="Bold" FontSize="17" />
+                    <Label Text="Criar, publicar e divulgar eventos do clube e acompanhar as reservas." FontSize="13" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Cartao}" IsVisible="{Binding EhPresidente}">
+                <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding AbrirFichasCommand}" />
                 </Border.GestureRecognizers>
                 <VerticalStackLayout Spacing="4">

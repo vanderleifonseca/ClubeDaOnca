@@ -120,6 +120,12 @@ public interface IClubeApi
     [Get("/eventos")]
     Task<List<EventoDto>> EventosAsync(bool? todos = null, CancellationToken ct = default);
 
+    [Get("/eventos/permissoes")]
+    Task<PermissoesEventosDto> PermissoesEventosAsync(CancellationToken ct = default);
+
+    [Post("/eventos/{id}/divulgar")]
+    Task DivulgarEventoAsync(Guid id, [Body] DivulgarEventoRequest request, CancellationToken ct = default);
+
     [Get("/eventos/{id}")]
     Task<EventoDto> EventoAsync(Guid id, CancellationToken ct = default);
 
@@ -268,7 +274,11 @@ public interface IClubeApi
     Task RenovarQrAsync(Guid id, CancellationToken ct = default);
 
     [Post("/socios/{id}/dependentes")]
-    Task<DependenteDto> CriarDependenteAsync(Guid id, [Body] SalvarDependenteRequest request, CancellationToken ct = default);
+    Task<DependenteCriadoResponse> CriarDependenteAsync(Guid id, [Body] SalvarDependenteRequest request, CancellationToken ct = default);
+
+    /// <summary>Cria o login próprio do dependente (exige e-mail) ou gera nova senha provisória.</summary>
+    [Post("/socios/{id}/dependentes/{dependenteId}/acesso")]
+    Task<AcessoDependenteDto> GerarAcessoDependenteAsync(Guid id, Guid dependenteId, CancellationToken ct = default);
 
     [Put("/socios/{id}/dependentes/{dependenteId}")]
     Task<DependenteDto> AtualizarDependenteAsync(Guid id, Guid dependenteId, [Body] SalvarDependenteRequest request, CancellationToken ct = default);

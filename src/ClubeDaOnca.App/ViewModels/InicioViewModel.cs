@@ -27,6 +27,10 @@ public partial class InicioViewModel(SessaoService sessao, IClubeApi api, Regist
     [RelayCommand]
     private Task AbrirFichasAsync() => Shell.Current.GoToAsync("fichas");
 
+    [RelayCommand]
+    private Task GerenciarEventosAsync() =>
+        Shell.Current.GoToAsync("eventos-gestao", new ShellNavigationQueryParameters { ["gestao"] = true });
+
     [ObservableProperty]
     public partial bool EhSocio { get; set; }
 

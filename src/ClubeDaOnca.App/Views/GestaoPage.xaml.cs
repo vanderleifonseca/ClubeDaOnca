@@ -23,7 +23,7 @@ public partial class GestaoPage : ContentPage
         CartaoReservas.IsVisible = _sessao.EhSecretaria;
         CartaoEspacos.IsVisible = _sessao.EhSecretaria;
         CartaoFinanceiro.IsVisible = _sessao.EhSecretaria;
-        CartaoEventos.IsVisible = _sessao.EhSecretaria;
+        CartaoEventos.IsVisible = _sessao.EhSecretaria; // Admin gerencia; a secretaria abre em modo consulta
         CartaoComunicados.IsVisible = _sessao.EhSecretaria;
         CartaoAssociacao.IsVisible = _sessao.EhAdmin;
         CartaoEquipe.IsVisible = _sessao.EhAdmin;

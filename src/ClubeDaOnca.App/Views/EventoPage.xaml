@@ -114,8 +114,11 @@
                     IsEnabled="{Binding Ocupado, Converter={StaticResource InvertedBoolConverter}}" />
             <Button Text="Publicar para os sócios" Command="{Binding PublicarCommand}" IsVisible="{Binding PodePublicar}"
                     BackgroundColor="#1B873F" />
-            <HorizontalStackLayout Spacing="8" IsVisible="{Binding PodeCancelar}">
-                <Button Text="📣  Divulgar agora" Command="{Binding DivulgarAgoraCommand}" />
+            <Label Text="Somente consulta: quem cria e altera eventos é o administrador ou o presidente."
+                   IsVisible="{Binding SoConsulta}" FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding PodeGerir}">
+                <Button Text="📣  Divulgar agora" Command="{Binding DivulgarAgoraCommand}" IsVisible="{Binding PodeDivulgar}" />
                 <Button Text="📷  Post para redes sociais" Command="{Binding PostRedesCommand}" IsVisible="{Binding PodePostRedes}"
                         BackgroundColor="{StaticResource Tertiary}" />
             </HorizontalStackLayout>

@@ -76,3 +76,9 @@ public sealed record ReservaEventoDto(
     string Socio,
     int NumeroTitulo,
     DateTimeOffset CriadoEm);
+
+/// <summary>O que a conta pode fazer com eventos: gerenciar (Admin e presidente) ou só consultar (secretaria).</summary>
+public sealed record PermissoesEventosDto(bool PodeVer, bool PodeGerir);
+
+/// <summary>Divulgação de um evento aos associados (app, e-mail e/ou WhatsApp).</summary>
+public sealed record DivulgarEventoRequest(string Mensagem, IReadOnlyList<string> Canais);

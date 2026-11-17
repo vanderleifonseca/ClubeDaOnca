@@ -157,6 +157,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TenantA
             d.Property(x => x.Email).HasMaxLength(256);
             d.Property(x => x.Telefone).HasMaxLength(20);
             d.Property(x => x.Profissao).HasMaxLength(100);
+            d.HasIndex(x => x.UsuarioId).IsUnique();
+            d.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<HistoricoAlteracao>(h =>

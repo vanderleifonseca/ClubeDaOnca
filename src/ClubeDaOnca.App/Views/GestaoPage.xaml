@@ -65,7 +65,7 @@
                 </Border.GestureRecognizers>
                 <VerticalStackLayout Spacing="4">
                     <Label Text="🎉  Eventos" FontAttributes="Bold" FontSize="17" />
-                    <Label Text="Cadastrar eventos, checar a agenda dos locais, ambientes com vagas e reservas." />
+                    <Label Text="Eventos, agenda dos locais, ambientes com vagas e reservas (a secretaria só consulta)." />
                 </VerticalStackLayout>
             </Border>
 
