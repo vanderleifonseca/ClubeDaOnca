@@ -1,6 +1,6 @@
 # Publicação no Google Play
 
-ID do app: `br.com.clubedaonca.app` (não muda depois da primeira publicação).
+ID do app: `clube.da.onca` (não muda depois da primeira publicação).
 
 ## 1. Chave de upload
 
