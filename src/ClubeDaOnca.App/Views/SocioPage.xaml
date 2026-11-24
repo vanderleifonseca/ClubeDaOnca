@@ -60,6 +60,23 @@
                 <DatePicker Grid.Column="1" Grid.Row="1" Date="{Binding DataCadastro}" Format="dd/MM/yyyy" MaximumDate="{Binding Hoje}" />
             </Grid>
 
+            <!-- Interesses -->
+            <Label Text="Interesses" Style="{StaticResource SubHeadline}" HorizontalOptions="Start" Margin="0,12,0,0" />
+            <FlexLayout BindableLayout.ItemsSource="{Binding Interesses}" Wrap="Wrap" Direction="Row">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:InteresseOpcao">
+                        <HorizontalStackLayout Spacing="0" Margin="0,0,16,0">
+                            <CheckBox IsChecked="{Binding Selecionado}" VerticalOptions="Center" />
+                            <Label Text="{Binding Nome}" VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="AoTocarInteresse" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+
             <!-- Endereço -->
             <Label Text="Endereço" Style="{StaticResource SubHeadline}" HorizontalOptions="Start" Margin="0,12,0,0" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" RowDefinitions="Auto,Auto">

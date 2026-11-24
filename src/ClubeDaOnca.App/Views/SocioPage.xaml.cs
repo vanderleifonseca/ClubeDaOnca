@@ -18,4 +18,11 @@ public partial class SocioPage : ContentPage
         base.OnAppearing();
         await _vm.CarregarCommand.ExecuteAsync(null);
     }
+
+    // Tocar no nome do interesse também marca/desmarca a caixa.
+    private void AoTocarInteresse(object? sender, TappedEventArgs e)
+    {
+        if ((sender as BindableObject)?.BindingContext is InteresseOpcao opcao)
+            opcao.Selecionado = !opcao.Selecionado;
+    }
 }

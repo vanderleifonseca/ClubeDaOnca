@@ -366,6 +366,7 @@ public static class SociosEndpoints
         socio.EstadoCivil = TentarEnum<EstadoCivil>(req.EstadoCivil, out var estadoCivil) ? estadoCivil : EstadoCivil.NaoInformado;
         socio.Rg = Vazio(req.Rg);
         if (req.DataCadastro is { } dataCadastro) socio.DataCadastro = dataCadastro;
+        if (req.Interesses is not null) socio.Interesses = Interesses.Normalizar(req.Interesses, out _);
         AplicarEndereco(socio.Endereco, req.Endereco);
     }
 
@@ -432,6 +433,9 @@ public static class SociosEndpoints
             erros["rg"] = ["RG muito longo (máximo 30 caracteres)."];
         if (req.DataCadastro is { } dc && !DataNascimentoValida(dc))
             erros["dataCadastro"] = ["Data de cadastro inválida (não pode ser futura)."];
+        Interesses.Normalizar(req.Interesses, out var interessesInvalidos);
+        if (interessesInvalidos.Count > 0)
+            erros["interesses"] = [$"Interesse inválido: {string.Join(", ", interessesInvalidos)}. Use {string.Join(", ", Interesses.Todos)}."];
         foreach (var (campo, msgs) in ValidarEndereco(req.Endereco)) erros[campo] = msgs;
         return erros;
     }
@@ -492,7 +496,7 @@ public static class SociosEndpoints
         new EnderecoDto(s.Endereco.Cep, s.Endereco.Logradouro, s.Endereco.Numero, s.Endereco.Complemento,
             s.Endereco.Bairro, s.Endereco.Cidade, s.Endereco.Uf),
         s.DataCadastro, s.CriadoEm, ultimaAlteracaoEm, ultimaAlteracaoPor, "Titular",
-        s.Nacionalidade, s.EstadoCivil.ToString(), s.Rg);
+        s.Nacionalidade, s.EstadoCivil.ToString(), s.Rg, Interesses: s.Interesses.ToList());
 
     private static DependenteDto MapearDependente(Dependente d) =>
         new(d.Id, d.Nome, d.Cpf, d.DataNascimento, d.Parentesco.ToString(), d.Ativo,

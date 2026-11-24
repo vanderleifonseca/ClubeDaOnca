@@ -75,6 +75,33 @@ public class SociosCarteirinhaTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
+    public async Task Grava_interesses_normalizados_e_registra_no_historico()
+    {
+        var admin = await AdminAsync();
+        var cpf = ProximoCpf();
+        var req = new SalvarSocioRequest("João Pescador", cpf, $"socio{cpf}@teste.local", null, new DateOnly(1980, 3, 1), "Individual",
+            Interesses: ["pintura", "Caca", "Pesca", "Pesca"]);
+
+        var resp = await admin.PostAsJsonAsync("/socios", req);
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+        var criado = (await resp.Content.ReadFromJsonAsync<SocioCriadoResponse>())!;
+        Assert.Equal(["Caça", "Pesca", "Pintura"], criado.Socio.Interesses!); // sem repetidos, na ordem do catálogo
+
+        // Sem a lista (cliente antigo): mantém o que estava gravado.
+        var semLista = await admin.PutAsJsonAsync($"/socios/{criado.Socio.Id}", req with { Interesses = null });
+        Assert.Equal(["Caça", "Pesca", "Pintura"], (await semLista.Content.ReadFromJsonAsync<SocioDto>())!.Interesses!);
+
+        var alterado = await admin.PutAsJsonAsync($"/socios/{criado.Socio.Id}", req with { Interesses = ["Cozinha"] });
+        Assert.Equal(["Cozinha"], (await alterado.Content.ReadFromJsonAsync<SocioDto>())!.Interesses!);
+
+        var historico = await admin.GetFromJsonAsync<List<HistoricoDto>>($"/socios/{criado.Socio.Id}/historico");
+        Assert.Contains(historico!, h => h.Campo == "Interesses" && h.ValorAnterior == "Caça, Pesca, Pintura" && h.ValorNovo == "Cozinha");
+
+        var invalido = await admin.PutAsJsonAsync($"/socios/{criado.Socio.Id}", req with { Interesses = ["Golfe"] });
+        Assert.Equal(HttpStatusCode.BadRequest, invalido.StatusCode);
+    }
+
+    [Fact]
     public async Task Rejeita_cpf_invalido_e_duplicado()
     {
         var admin = await AdminAsync();

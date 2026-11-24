@@ -25,6 +25,13 @@ public sealed record DependenteNovoLinha(SalvarDependenteRequest Req)
         (string.IsNullOrWhiteSpace(Req.Email) ? " · sem login (carteirinha no celular do titular)" : $" · login próprio: {Req.Email}");
 }
 
+/// <summary>Um interesse do catálogo, com a caixa marcada ou não.</summary>
+public partial class InteresseOpcao(string nome) : ObservableObject
+{
+    public string Nome { get; } = nome;
+    [ObservableProperty] public partial bool Selecionado { get; set; }
+}
+
 /// <summary>Uma linha do histórico: "10/11/2026 14:32 · Maria (secretaria)" + "Telefone: A → B".</summary>
 public sealed record HistoricoLinha(HistoricoDto Dto)
 {
@@ -54,6 +61,8 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
     public ObservableCollection<DependenteLinha> Dependentes { get; } = [];
     public ObservableCollection<DependenteNovoLinha> DependentesNovos { get; } = [];
     public ObservableCollection<HistoricoLinha> Historico { get; } = [];
+    public IReadOnlyList<InteresseOpcao> Interesses { get; } =
+        ClubeDaOnca.Domain.Socios.Interesses.Todos.Select(n => new InteresseOpcao(n)).ToList();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EhEdicao), nameof(TituloPagina))]
@@ -179,7 +188,8 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
                 new EnderecoDto(Cep, Logradouro, Numero, Complemento, Bairro, Cidade, Uf),
                 DateOnly.FromDateTime(DataCadastro),
                 Nacionalidade, EstadoCivil?.Valor ?? "NaoInformado", Rg,
-                Id is null ? DependentesNovos.Select(x => x.Req).ToList() : null);
+                Id is null ? DependentesNovos.Select(x => x.Req).ToList() : null,
+                Interesses.Where(i => i.Selecionado).Select(i => i.Nome).ToList());
 
             if (Id is { } id)
             {
@@ -322,6 +332,8 @@ public partial class SocioViewModel(IClubeApi api) : ObservableObject, IQueryAtt
         DataCadastro = (s.DataCadastro ?? DateOnly.FromDateTime(DateTime.Today)).ToDateTime(TimeOnly.MinValue);
         Categoria = Opcoes.Categorias.FirstOrDefault(c => c.Valor == s.Categoria) ?? Opcoes.Categorias[0];
         Situacao = s.Situacao;
+        foreach (var i in Interesses)
+            i.Selecionado = s.Interesses?.Contains(i.Nome) == true;
 
         var e = s.Endereco ?? new EnderecoDto();
         Cep = e.Cep is { Length: 8 } c ? $"{c[..5]}-{c[5..]}" : e.Cep ?? string.Empty;

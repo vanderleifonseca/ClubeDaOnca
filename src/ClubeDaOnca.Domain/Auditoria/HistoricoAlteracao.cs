@@ -65,6 +65,7 @@ public static class FormatadorHistorico
         ["Nacionalidade"] = "Nacionalidade",
         ["EstadoCivil"] = "Estado civil",
         ["Rg"] = "RG",
+        ["Interesses"] = "Interesses",
         ["ReceberAvisosApp"] = "Receber avisos no app",
         ["ReceberEmail"] = "Receber divulgação por e-mail",
         ["ReceberWhatsApp"] = "Receber divulgação por WhatsApp",
@@ -127,6 +128,7 @@ public static class FormatadorHistorico
         TimeOnly t => t.ToString("HH:mm", PtBr),
         decimal m => m.ToString("C", PtBr),
         Enum e => TextosEnum.GetValueOrDefault(e.ToString(), e.ToString()),
+        IEnumerable<string> lista => lista.Any() ? string.Join(", ", lista) : null,
         IFormattable f => f.ToString(null, PtBr),
         _ => valor.ToString(),
     };

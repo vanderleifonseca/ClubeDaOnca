@@ -79,6 +79,9 @@ public sealed class Socio : IPertenceAssociacao
 
     public Endereco Endereco { get; set; } = new();
 
+    /// <summary>Interesses marcados no cadastro (textos de <see cref="Socios.Interesses.Todos"/>).</summary>
+    public List<string> Interesses { get; set; } = [];
+
     /// <summary>Data de entrada no clube (editável para sócios antigos; o registro técnico é <see cref="CriadoEm"/>).</summary>
     public DateOnly DataCadastro { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 

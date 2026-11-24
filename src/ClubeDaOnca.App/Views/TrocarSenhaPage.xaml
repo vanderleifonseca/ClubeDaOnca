@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ClubeDaOnca.App.ViewModels"
+             xmlns:views="clr-namespace:ClubeDaOnca.App.Views"
              x:Class="ClubeDaOnca.App.Views.TrocarSenhaPage"
              x:DataType="vm:TrocarSenhaViewModel"
              Shell.NavBarIsVisible="False"
@@ -14,10 +15,19 @@
                    Text="Você entrou com a senha provisória entregue pela secretaria. Para continuar, escolha uma senha pessoal."
                    TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
 
-            <Entry Placeholder="Senha provisória" Text="{Binding SenhaAtual}" IsPassword="True" />
-            <Entry Placeholder="Nova senha" Text="{Binding NovaSenha}" IsPassword="True" />
-            <Entry Placeholder="Repita a nova senha" Text="{Binding Confirmacao}" IsPassword="True"
-                   ReturnType="Go" ReturnCommand="{Binding SalvarCommand}" />
+            <Grid ColumnDefinitions="*,Auto">
+                <Entry x:Name="SenhaAtualEntry" Placeholder="Senha provisória" Text="{Binding SenhaAtual}" IsPassword="True" />
+                <views:BotaoOlho Grid.Column="1" Campo="{x:Reference SenhaAtualEntry}" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto">
+                <Entry x:Name="NovaSenhaEntry" Placeholder="Nova senha" Text="{Binding NovaSenha}" IsPassword="True" />
+                <views:BotaoOlho Grid.Column="1" Campo="{x:Reference NovaSenhaEntry}" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto">
+                <Entry x:Name="ConfirmacaoEntry" Placeholder="Repita a nova senha" Text="{Binding Confirmacao}" IsPassword="True"
+                       ReturnType="Go" ReturnCommand="{Binding SalvarCommand}" />
+                <views:BotaoOlho Grid.Column="1" Campo="{x:Reference ConfirmacaoEntry}" />
+            </Grid>
 
             <Label FontSize="13" Text="Mínimo de 8 caracteres, com letra maiúscula, letra minúscula e número."
                    TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />

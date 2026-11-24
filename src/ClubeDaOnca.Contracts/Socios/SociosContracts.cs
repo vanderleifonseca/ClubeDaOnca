@@ -54,7 +54,8 @@ public sealed record SocioDto(
     string? Nacionalidade = null,
     string EstadoCivil = "NaoInformado",
     string? Rg = null,
-    string? StatusContrato = null);
+    string? StatusContrato = null,
+    IReadOnlyList<string>? Interesses = null);
 
 public sealed record SalvarSocioRequest(
     string Nome,
@@ -70,7 +71,8 @@ public sealed record SalvarSocioRequest(
     string? Nacionalidade = null,
     string? EstadoCivil = null,
     string? Rg = null,
-    IReadOnlyList<SalvarDependenteRequest>? Dependentes = null);
+    IReadOnlyList<SalvarDependenteRequest>? Dependentes = null,
+    IReadOnlyList<string>? Interesses = null); // nulo = mantém os interesses atuais
 
 /// <param name="SenhaProvisoria">
 /// Senha de primeiro acesso ao app, exibida uma única vez para a secretaria entregar ao sócio.

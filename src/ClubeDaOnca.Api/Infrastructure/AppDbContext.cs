@@ -136,6 +136,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TenantA
             s.Property(x => x.Nacionalidade).HasMaxLength(60);
             s.Property(x => x.EstadoCivil).HasConversion<string>().HasMaxLength(20);
             s.Property(x => x.Rg).HasMaxLength(30);
+            s.Property(x => x.Interesses).HasDefaultValueSql("'{}'::text[]"); // text[] no Postgres
             s.OwnsOne(x => x.Endereco, ConfigurarEndereco);
             s.Navigation(x => x.Endereco).IsRequired();
             s.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(20);
